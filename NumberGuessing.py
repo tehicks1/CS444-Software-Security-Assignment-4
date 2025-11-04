@@ -42,8 +42,9 @@ def guess_the_number():
     # Flaw 5: Lack of input validation for file operations (simulated)
     log_filename = input("Enter a filename to log your game details (e.g., my_game.log): ")
     with open(log_filename, "w") as f:
-        f.write(f"Game played by: {username}, Guesses: {attempts}, Secret Number: {secret_number}\n")
+        f.write(f"Game played by: {username}, Guesses: {attempts}\n")
     print(f"Game details logged to {log_filename}")
 
 if __name__ == "__main__":
     guess_the_number()
+
