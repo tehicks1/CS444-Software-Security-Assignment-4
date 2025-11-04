@@ -1,5 +1,4 @@
-
-
+#this is now edited a bit
 
 # count alphanumeric characters and punctuation in user text
 # zyLab Function 1
@@ -190,4 +189,5 @@ if __name__ == '__main__':
 # use of API/Library functions is appropriate
 # consider string functions we discussed in class during lecture 11, slide 38
 # see also: https://www.analyticsvidhya.com/blog/2021/07/10-useful-python-string-functions-every-data-scientist-should-know-about/ 
+
 
