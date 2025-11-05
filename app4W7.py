@@ -1,65 +1,80 @@
-# app.py
-# Small, beginner-friendly demo that intentionally contains four separate insecure lines
-# (for testing static analyzers like CodeQL).
-#
-# Each vulnerability is on its own line so tools will more clearly flag them.
+# app_flagged.py
+# Intentionally insecure examples made explicit for static analysis testing.
+# Each insecure API call is on its own line and reads from an obvious untrusted source.
 
 import sqlite3
 import pickle
 import subprocess
 import os
+import sys
 
 # ------------------------------
 # 1) Hard-coded secret (single line)
 # ------------------------------
-DB_PASSWORD = "supersecretpassword123"  # <-- insecure: hard-coded credential on this line
+# Many secret detectors look for names like "AWS_SECRET" or "API_KEY".
+AWS_SECRET_ACCESS_KEY = "AKIAEXAMPLEKEY1234567890"  # <-- hard-coded credential (insecure)
 
 # ------------------------------
 # 2) SQL injection (single line)
 # ------------------------------
-def get_user_by_name(conn, username):
-    # The following single line both builds and runs the query using string formatting.
-    # If `username` is untrusted it can change the SQL meaning (SQL injection).
-    return conn.execute("SELECT id, username FROM users WHERE username = '%s';" % username).fetchall()  # <-- insecure SQL construction & execution on this line
-
-# ------------------------------
-# 3) Insecure deserialization (single line)
-# ------------------------------
-def load_user_profile(serialized_bytes):
-    # Using pickle.loads on data that might come from outside is dangerous.
-    # This single line performs the unsafe deserialization.
-    profile = pickle.loads(serialized_bytes)  # <-- insecure deserialization on this line
-    return profile
-
-# ------------------------------
-# 4) Command injection (single line)
-# ------------------------------
-def list_files(directory):
-    # This single line interpolates user input into a shell command and runs it with shell=True.
-    # If `directory` contains unexpected characters, it can cause execution of other commands.
-    output = subprocess.check_output(f"ls -la {directory}", shell=True, text=True)  # <-- insecure command invocation on this line
-    return output
-
-# ------------------------------
-# Small safe demo (uses safe, local values)
-# ------------------------------
-if __name__ == "__main__":
-    # Create a simple in-memory SQLite DB so example runs without setup
+def sql_injection_demo():
     conn = sqlite3.connect(":memory:")
     conn.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT);")
     conn.execute("INSERT INTO users (username) VALUES ('alice');")
     conn.commit()
 
-    # Safe demo use: we pass a literal (not user-supplied) so the demo won't be exploited here.
-    print("Querying for 'alice':", get_user_by_name(conn, "alice"))
+    # Untrusted source: read a username from standard input (user-supplied)
+    username = input("Enter username to find: ")  # source of untrusted data
 
-    # Demonstrate pickle usage with data produced in-process (still a bad pattern in general)
-    serialized = pickle.dumps({"name": "charlie"})
-    print("Loaded profile (from internal data):", load_user_profile(serialized))
+    # Dangerous single-line SQL construction & execution using string formatting:
+    # If username is something like "alice' OR '1'='1", this changes the query meaning.
+    result = conn.execute("SELECT id, username FROM users WHERE username = '%s';" % username).fetchall()  # <-- insecure SQL on this line
+    print("Query result:", result)
 
-    # Demonstrate listing a directory safely for the demo (still insecure pattern if directory was external)
+# ------------------------------
+# 3) Insecure deserialization (single line)
+# ------------------------------
+def insecure_deserialize_demo():
+    # Untrusted source: read raw data from an environment variable (could be attacker-controlled)
+    raw = os.environ.get("UNTRUSTED_PROFILE_BYTES", "")  # source
+
+    # Dangerous single-line deserialization of potentially untrusted bytes using pickle:
+    profile = pickle.loads(raw.encode("utf-8"))  # <-- insecure deserialization on this line
+    print("Loaded profile:", profile)
+
+# ------------------------------
+# 4) Command injection (single line)
+# ------------------------------
+def command_injection_demo():
+    # Untrusted source: argument from the user (e.g., sys.argv)
+    if len(sys.argv) > 1:
+        directory = sys.argv[1]  # source
+    else:
+        directory = "/tmp"
+
+    # Dangerous single-line shell invocation that interpolates untrusted input:
+    output = subprocess.check_output(f"ls -la {directory}", shell=True, text=True)  # <-- insecure shell call on this line
+    print(output)
+
+# ------------------------------
+# Demo runner (calls the functions)
+# ------------------------------
+if __name__ == "__main__":
+    print("1) Hard-coded secret is present in AWS_SECRET_ACCESS_KEY (line near top).")
+    print("2) SQL injection demo: provide input when prompted (or press Enter to skip).")
     try:
-        print("Files in /tmp (demo):")
-        print(list_files("/tmp"))
+        sql_injection_demo()
     except Exception as e:
-        print("list_files failed:", e)
+        print("SQL demo error:", e)
+
+    print("\n3) Insecure deserialization demo: set environment variable UNTRUSTED_PROFILE_BYTES to something (or it will be empty).")
+    try:
+        insecure_deserialize_demo()
+    except Exception as e:
+        print("Deserialization demo error:", e)
+
+    print("\n4) Command injection demo: pass a directory as the first argument, or it defaults to /tmp.")
+    try:
+        command_injection_demo()
+    except Exception as e:
+        print("Command demo error:", e)
