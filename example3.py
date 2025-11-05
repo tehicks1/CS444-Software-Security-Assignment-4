@@ -1,7 +1,7 @@
 import os
 
 def run_command(command):
-    os.system(command) # Insecure: Direct command execution with user input
+    os.system(command)
 
 # Vulnerable usage example
 user_input = input("Enter a command: ")
