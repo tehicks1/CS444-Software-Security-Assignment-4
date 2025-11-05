@@ -2,12 +2,10 @@ import os
 
 def create_profile():
     username = input("Enter username: ")
-    password = input("Enter password: ")
     bio = input("Enter your bio: ")
 
     with open(f"{username}.txt", "w") as f:
         f.write(f"Username: {username}\n")
-        f.write(f"Password: {password}\n") # Security Flaw 1: Storing plaintext password
         f.write(f"Bio: {bio}\n")
     print("Profile created successfully!")
 
